@@ -7,6 +7,7 @@ from ftrack_connect.qt import QtWidgets
 from ftrack_connect.qt import QtCore
 from ftrack_connect.qt import QtGui
 
+
 from ftrack_api import exception
 from ftrack_api import event
 
@@ -22,7 +23,8 @@ from ftrack_connect.ui.widget import entity_selector
 
 import ftrack_connect.asynchronous
 import ftrack_connect.error
-
+import qtawesome as qta
+from functools import partial
 
 class EntitySelector(entity_selector.EntitySelector):
     '''Local representation of EntitySelector to support custom behaviour.'''
@@ -31,6 +33,82 @@ class EntitySelector(entity_selector.EntitySelector):
         '''Overriden method to validate the selected *entity*.'''
         # Prevent selecting projects.
         return entity.entity_type != 'Project'
+
+
+class PlayableComponent(ftrack_connect.ui.widget.component.Component):
+    play = QtCore.Signal(object)
+    supported_formats=['.mov', '.png', '.jpeg', '.jpg']
+
+    def __init__(
+        self, componentName=None, resourceIdentifier=None, parent=None
+    ):
+        super(PlayableComponent, self).__init__(
+            componentName=componentName,
+            resourceIdentifier=resourceIdentifier,
+            parent=parent
+        )
+
+        play_icon = qta.icon('mdi6.play')
+        self.play_action = QtWidgets.QAction(
+            play_icon, 'Play', self.componentNameEdit,
+            triggered=partial(self.play.emit, resourceIdentifier)
+        )
+
+        self.componentNameEdit.addAction(self.play_action )
+
+
+class PlayableComponentList(_components_list.ComponentsList):
+
+    def __init__(self, parent=None, session=None):
+        '''Initialise widget with *parent*.'''
+        super(PlayableComponentList, self).__init__(parent=parent)
+        self.session = session
+        self.player = None
+        self.discover_player()
+
+    def on_reply(self, event):
+        for item in event.get('data', {}).get('items', []):
+            if 'cinesync' in item.get('applicationIdentifier').lower():
+                self.player = item
+                break
+
+    def discover_player(self):
+        fevent = event.base.Event(
+            topic='ftrack.action.discover',
+        )
+        self.session.event_hub.publish(
+            fevent,
+            synchronous=False,
+            on_reply=self.on_reply
+        )
+
+    def play_component(self, resource_identifier):
+        player_item = self.player.copy()
+        player_item['launchArguments'] = ['-a', resource_identifier]
+
+        fevent = event.base.Event(
+            topic='ftrack.action.launch',
+            data=player_item
+        )
+
+        self.session.event_hub.publish(
+            fevent,
+            synchronous=False
+        )
+
+    def _createComponentWidget(self, item):
+        '''Return component widget for *item*.
+
+        *item* should be a mapping of keyword arguments to pass to
+        :py:class:`ftrack_connect.widget.component.Component`.
+
+        '''
+        if item is None:
+            item = {}
+
+        component = PlayableComponent(**item)
+        component.play.connect(self.play_component)
+        return component
 
 
 class Publisher(QtWidgets.QWidget):
@@ -66,7 +144,7 @@ class Publisher(QtWidgets.QWidget):
         self.browser.dataSelected.connect(self._onDataSelected)
 
         # Create a components list widget.
-        self.componentsList = _components_list.ComponentsList()
+        self.componentsList = PlayableComponentList(self, self.session)
         self.componentsList.setObjectName('publisher-componentlist')
         self.componentsList.itemsChanged.connect(
             self._onComponentListItemsChanged

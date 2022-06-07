@@ -60,13 +60,18 @@ class PlayableComponent(ftrack_connect.ui.widget.component.Component):
         )
 
         if os.path.splitext(resourceIdentifier)[-1].lower() not in self.supported_formats:
+
+
+        # TODO: Use clique to get the actual sequence.
+        if os.path.splitext(resourceIdentifier)[-1].lower().split(' ')[0] not in self.supported_formats:
             return
 
         play_icon = qta.icon('mdi6.play', color='#FFDD86')
+        sanitized_resource_identifier = resourceIdentifier.split(' ')[0]
 
         self.play_action = QtWidgets.QAction(
             play_icon, 'Play', self.componentNameEdit,
-            triggered=partial(self.play.emit, resourceIdentifier)
+            triggered=partial(self.play.emit, sanitized_resource_identifier)
         )
 
         self.componentNameEdit.addAction(self.play_action )

@@ -60,6 +60,7 @@ class PlayableComponent(ftrack_connect.ui.widget.component.Component):
         )
 
         if os.path.splitext(resourceIdentifier)[-1].lower() not in self.supported_formats:
+            return
 
 
         # TODO: Use clique to get the actual sequence.

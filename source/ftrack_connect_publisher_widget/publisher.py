@@ -68,12 +68,13 @@ class PlayableComponent(ftrack_connect.ui.widget.component.Component):
             play_icon, 'Play component', self.componentNameEdit,
             triggered=partial(self.play.emit, sanitized_resource_identifier)
         )
-            triggered=partial(self.play.emit, sanitized_resource_identifier)
-        )
+        
         self.componentNameEdit.addAction(self.play_action )
 
 
 class PlayableComponentList(_components_list.ComponentsList):
+
+    target_player = 'cinesync'
 
     def __init__(self, parent=None, session=None):
         '''Initialise widget with *parent*.'''
@@ -82,9 +83,9 @@ class PlayableComponentList(_components_list.ComponentsList):
         self.player = None
         self.discover_player()
 
-    def on_reply(self, event):
+    def on_player_discovered(self, event):
         for item in event.get('data', {}).get('items', []):
-            if 'cinesync' in item.get('applicationIdentifier').lower():
+            if self.target_player in item.get('applicationIdentifier').lower():
                 self.player = item
                 break
 
@@ -95,7 +96,7 @@ class PlayableComponentList(_components_list.ComponentsList):
         self.session.event_hub.publish(
             fevent,
             synchronous=False,
-            on_reply=self.on_reply
+            on_reply=self.on_player_discovered
         )
 
     def play_component(self, resource_identifier):

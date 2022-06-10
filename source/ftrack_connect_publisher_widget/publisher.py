@@ -27,6 +27,7 @@ import ftrack_connect.error
 import qtawesome as qta
 from functools import partial
 
+
 class EntitySelector(entity_selector.EntitySelector):
     '''Local representation of EntitySelector to support custom behaviour.'''
 
@@ -39,15 +40,9 @@ class EntitySelector(entity_selector.EntitySelector):
 class PlayableComponent(ftrack_connect.ui.widget.component.Component):
     play = QtCore.Signal(object)
     supported_formats = [
-        '.mov',
-        '.png',
-        '.jpeg',
-        '.jpg',
-        '.avi',
-        '.exr',
-        '.sgi',
-        '.tiff',
-        '.pdf'
+        '.pdf', '.jpeg', '.jpg', '.png', '.tiff', '.tif', 
+        '.exr', '.dpx', '.cin', '.sgi',
+        '.mov', '.mp4', '.mkv', '.y4m'
     ]
 
     def __init__(
@@ -62,19 +57,18 @@ class PlayableComponent(ftrack_connect.ui.widget.component.Component):
         if os.path.splitext(resourceIdentifier)[-1].lower() not in self.supported_formats:
             return
 
-
         # TODO: Use clique to get the actual sequence.
         if os.path.splitext(resourceIdentifier)[-1].lower().split(' ')[0] not in self.supported_formats:
             return
 
-        play_icon = qta.icon('mdi6.play', color='#FFDD86')
+        play_icon = qta.icon('mdi6.play', color='#FFDD86', scale_factor=1.5)
         sanitized_resource_identifier = resourceIdentifier.split(' ')[0]
 
         self.play_action = QtWidgets.QAction(
-            play_icon, 'Play', self.componentNameEdit,
+            play_icon, 'Play component', self.componentNameEdit,
+            triggered=partial(self.play.emit, sanitized_resource_identifier)
             triggered=partial(self.play.emit, sanitized_resource_identifier)
         )
-
         self.componentNameEdit.addAction(self.play_action )
 
 
@@ -104,8 +98,13 @@ class PlayableComponentList(_components_list.ComponentsList):
         )
 
     def play_component(self, resource_identifier):
+        if not self.player:
+            return
+
         player_item = self.player.copy()
-        player_item['launchArguments'] = ['-a', resource_identifier]
+        player_item['launchArguments'] = [
+            '-a', f"{resource_identifier}"
+        ]
 
         fevent = event.base.Event(
             topic='ftrack.action.launch',

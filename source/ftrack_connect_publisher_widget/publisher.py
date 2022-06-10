@@ -42,7 +42,7 @@ class PlayableComponent(ftrack_connect.ui.widget.component.Component):
     supported_formats = [
         '.pdf', '.jpeg', '.jpg', '.png', '.tiff', '.tif', 
         '.exr', '.dpx', '.cin', '.sgi',
-        '.mov', '.mp4', '.mkv', '.y4m'
+        '.mov', '.mp4', '.mkv', '.y4m', '.m4v'
     ]
 
     def __init__(
@@ -67,6 +67,7 @@ class PlayableComponent(ftrack_connect.ui.widget.component.Component):
         self.play_action = QtWidgets.QAction(
             play_icon, 'Play component', self.componentNameEdit,
             triggered=partial(self.play.emit, sanitized_resource_identifier)
+        )
             triggered=partial(self.play.emit, sanitized_resource_identifier)
         )
         self.componentNameEdit.addAction(self.play_action )
